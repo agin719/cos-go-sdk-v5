@@ -39,6 +39,9 @@ type ObjectGetOptions struct {
 
 	// 下载进度, ProgressCompleteEvent不能表示对应API调用成功，API是否调用成功的判断标准为返回err==nil
 	Listener ProgressListener `header:"-" url:"-" xml:"-"`
+
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+	XOptionQuery  *url.Values  `header:"-" url:"-" xml:"-"`
 }
 
 // presignedURLTestingOptions is the opt of presigned url
@@ -52,12 +55,19 @@ type presignedURLTestingOptions struct {
 // https://www.qcloud.com/document/product/436/7753
 func (s *ObjectService) Get(ctx context.Context, name string, opt *ObjectGetOptions, id ...string) (*Response, error) {
 	var u string
+	var mark string
 	if len(id) == 1 {
 		u = fmt.Sprintf("/%s?versionId=%s", encodeURIComponent(name), id[0])
+		mark = "&"
 	} else if len(id) == 0 {
 		u = "/" + encodeURIComponent(name)
+		mark = "?"
 	} else {
 		return nil, errors.New("wrong params")
+	}
+
+	if opt != nil && opt.XOptionQuery != nil {
+		u = fmt.Sprintf("%s%s%s", u, mark, opt.XOptionQuery.Encode())
 	}
 
 	sendOpt := sendOptions{

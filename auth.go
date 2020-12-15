@@ -48,6 +48,10 @@ var needSignHeaders = map[string]bool{
 	"x-cos-object-type":              true,
 }
 
+var excludeSignQuerys = []string{
+	"watermark",
+}
+
 func safeURLEncode(s string) string {
 	s = encodeURIComponent(s)
 	s = strings.Replace(s, "!", "%21", -1)
@@ -205,8 +209,10 @@ func genFormatParameters(parameters url.Values) (formatParameters string, signed
 	for key, values := range parameters {
 		key = strings.ToLower(key)
 		for _, value := range values {
-			ps.Add(key, value)
-			signedParameterList = append(signedParameterList, key)
+			if isSignQuery(key) {
+				ps.Add(key, value)
+				signedParameterList = append(signedParameterList, key)
+			}
 		}
 	}
 	//formatParameters = strings.ToLower(ps.Encode())
@@ -253,6 +259,15 @@ func isSignHeader(key string) bool {
 		}
 	}
 	return strings.HasPrefix(key, privateHeaderPrefix)
+}
+
+func isSignQuery(key string) bool {
+	for _, v := range excludeSignQuerys {
+		if strings.HasPrefix(key, v) {
+			return false
+		}
+	}
+	return true
 }
 
 // AuthorizationTransport 给请求增加 Authorization header
